@@ -43,6 +43,11 @@ export default function TriagePage() {
   const [smokeRun, setSmokeRun] = useState<SmokeRun | null>(null);
   const [isRunningSmoke, setIsRunningSmoke] = useState(false);
   const [smokeError, setSmokeError] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState("");
+  const [isExplaining, setIsExplaining] = useState(false);
+  const [decisionModel, setDecisionModel] = useState<{
+    model: string; sampleSize: number; categoryAccuracy: number; priorityAccuracy: number; latencyMs: number; cost: number;
+  } | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -81,6 +86,37 @@ export default function TriagePage() {
 
   }
 
+  async function explainResult() {
+    if (!result || isExplaining) return;
+    setIsExplaining(true);
+    setExplanation("");
+    try {
+      const response = await fetch("/api/triage/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticket: `${subject}\n\n${body}`, triage: result }),
+      });
+      if (!response.ok || !response.body) throw new Error("Unable to stream an explanation.");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        setExplanation((current) => current + decoder.decode(chunk.value, { stream: true }));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to stream an explanation.");
+    } finally {
+      setIsExplaining(false);
+    }
+  }
+
+  async function loadDecisionModel() {
+    const response = await fetch("/api/decision-model");
+    if (!response.ok) throw new Error("Unable to evaluate the decision model.");
+    setDecisionModel(await response.json());
+  }
+
   async function runSmokeTest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsRunningSmoke(true);
@@ -100,6 +136,7 @@ export default function TriagePage() {
     } finally {
       setIsRunningSmoke(false);
     }
+
   }
 
   return (
@@ -134,8 +171,23 @@ export default function TriagePage() {
           </dl>
           <small>prompt {promptVersion} · model {model || "configured model"}</small>
           {usage && <p>Tokens: {usage.input} input · {usage.output} output · {usage.total} total</p>}
+          <button type="button" onClick={explainResult} disabled={isExplaining}>
+            {isExplaining ? "Explaining..." : "Explain decision"}
+          </button>
+          {explanation && <p aria-live="polite">{explanation}</p>}
         </section>
       )}
+
+        <section aria-label="Decision model comparison">
+          <h2>Decision model baseline</h2>
+          <p>A transparent, zero-cost rules model is evaluated on the labelled development set.</p>
+          <button type="button" onClick={() => void loadDecisionModel()}>Run decision-model comparison</button>
+          {decisionModel && (
+            <p>
+              {decisionModel.model}: category {(decisionModel.categoryAccuracy * 100).toFixed(1)}% · priority {(decisionModel.priorityAccuracy * 100).toFixed(1)}% · {decisionModel.latencyMs} ms · ${decisionModel.cost.toFixed(2)}
+            </p>
+          )}
+        </section>
 
       <section aria-label="Smoke test">
         <h2>Smoke test</h2>

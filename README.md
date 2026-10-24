@@ -28,6 +28,25 @@ and mismatch summaries. Each run is stored in `data/smoke-runs.json` and is
 listed at `/admin` with accuracy, outcomes, latency, cost, and model. Cost is
 calculated from the optional `LLM_*_COST_PER_1K` environment variables.
 
+The triage page includes an Explain action at `/api/triage/explain`, which
+streams a short explanation after the validated decision without changing it.
+It also includes a deterministic, zero-cost decision-model baseline at
+`/api/decision-model`. The baseline is useful for comparison: rules are cheap
+and fast, while the LLM handles language variation and ambiguous tickets.
+
+## Quality checklist
+
+- API keys are read only on the server and `.env.local` is ignored.
+- Requests and model output are validated with Zod; invalid model output is retried once.
+- Provider failures are mapped to safe client messages and the server logs no key or full ticket.
+- Triage prompts are centralized and versioned.
+- Smoke runs record outcomes, accuracy, latency, token usage, and configured cost.
+- The decision-model baseline records category/priority accuracy, latency, and zero cost.
+
+Run the smoke test with a configured provider before submission and record the
+observed results in `EXPERIMENTS.md`; live model accuracy must not be inferred
+from a build or from the deterministic baseline.
+
 ## Sample data
 
 The `data/` folder contains two support-ticket datasets:

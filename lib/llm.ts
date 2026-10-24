@@ -54,6 +54,19 @@ export async function chat(history: ChatTurn[]): Promise<string> {
   return completion.choices[0]?.message?.content ?? "";
 }
 
+export async function explain(ticket: string, result: TriageResult) {
+  const { model } = getConfig();
+  const stream = await getClient().chat.completions.create({
+    model,
+    stream: true,
+    messages: [
+      { role: "system", content: "Explain a validated support-triage decision to a support agent in 2 to 4 concise sentences. Do not change the decision." },
+      { role: "user", content: `<ticket>${ticket}</ticket>\nValidated result: ${JSON.stringify(result)}` },
+    ],
+  });
+  return stream;
+}
+
 /** Use 2 (CHECK), step 0: tolerate an optional ```json fence in prompt-only mode. */
 function stripCodeFence(text: string): string {
   const match = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
