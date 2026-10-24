@@ -49,6 +49,8 @@ form {
 }
 
 textarea,
+input,
+select,
 button {
   padding: 12px;
   border: 1px solid #ccd3df;
@@ -75,4 +77,38 @@ button:disabled {
 
 [role="alert"] {
   color: #a51d25;
+}
+
+section {
+  margin-top: 32px;
+  padding: 20px;
+  border: 1px solid #ccd3df;
+  border-radius: 12px;
+  background: white;
+}
+
+.smoke-results {
+  margin-top: 20px;
+}
+
+.smoke-results li {
+  margin: 8px 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+th,
+td {
+  padding: 10px;
+  border: 1px solid #ccd3df;
+  text-align: left;
+  vertical-align: top;
 }

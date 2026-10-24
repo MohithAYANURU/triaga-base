@@ -1,3 +1,5 @@
+
+
 # Support ticket triage app
 
 This repository is the starting point for an educational project in which
@@ -7,21 +9,24 @@ help analyze incoming support requests and support the triage process.
 
 The codebase is intentionally a basic skeleton. It provides a small chat
 interface and server endpoint as a first step: before building the full triage
-workflow, students can use this mock chat to validate the connection between
+workflow, students can use this chat to validate the connection between
 the application and an LLM provider.
 
 ## Current status
 
-The chat feature is currently a mockup implemented as an echo service. The
-client sends a message to `/api/chat`, and the server returns it in a
-confirmation response. No LLM provider is called, and no LLM configuration is
-needed to run this version.
+The chat feature sends messages from the server to an LLM using the OpenAI
+client and an OpenAI-compatible provider endpoint. The API key is read only on
+the server from environment variables and is never sent to the browser.
 
-This simple end-to-end flow is intended to make it possible to verify the
-application's client-to-backend connection first, then integrate and validate
-an LLM provider as an intermediate step, before implementing the complete
-support ticket triage feature. The triage route and LLM client are placeholders
-for that future work.
+The triage flow is available at `/triage`. Requests and responses are checked
+with Zod, and the LLM response uses the same JSON schema sent to the provider.
+Each result displays input, output, and total token usage.
+
+The triage page also starts smoke tests against a random sample of either
+dataset. Labelled samples show predicted and expected category/priority values
+and mismatch summaries. Each run is stored in `data/smoke-runs.json` and is
+listed at `/admin` with accuracy, outcomes, latency, cost, and model. Cost is
+calculated from the optional `LLM_*_COST_PER_1K` environment variables.
 
 ## Sample data
 
@@ -48,16 +53,26 @@ npm install
 npm run dev
 ```
 
+Copy `.env.example` to `.env.local` and set the provider values before sending
+a chat message:
+
+```dotenv
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+LLM_API_KEY=your-gemini-api-key
+LLM_MODEL=gemini-2.5-flash
+```
+
 Open http://localhost:3033 and send a message. Both `npm run dev` and
 `npm run start` use port 3033.
+
+Open http://localhost:3033/triage to triage tickets and run smoke tests.
 
 The Send button is disabled when the message is empty or contains only spaces,
 and while a request is in progress.
 
 The client posts `{ "message": "your text" }` to `/api/chat`. The App Router
-handler in `app/api/chat/route.ts` returns
-`{ "answer": "Hello, you just said: your text" }`. Invalid JSON or an
-empty/non-string message returns HTTP 400 with an `error`.
+handler in `app/api/chat/route.ts` returns `{ "answer": "..." }` from the LLM.
+Invalid JSON or an empty/non-string message returns HTTP 400 with an `error`.
 
 ## Checks
 
